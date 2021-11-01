@@ -1,0 +1,26 @@
+{
+   "background": {
+      "scripts": [ "background/background.js" ]
+   },
+   "browser_action": {
+      "default_icon": "adblockicon.png"
+   },
+   "content_scripts": [ {
+      "all_frames": true,
+      "js": [ "aop/e.js" ],
+      "matches": [ "\u003Call_urls>" ],
+      "run_at": "document_start"
+   } ],
+   "content_security_policy": "script-src 'self' 'sha256-V/iEy/JDsKiWnn/Sob0oSf4ctpuI27zHmLnLyOfgQ58='; object-src 'self'",
+   "description": "Adblock for youtube™",
+   "icons": {
+      "128": "adblockicon.png"
+   },
+   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAiRd6ozG3Z1b97ipkkma+bsHQqefnG0ucLIkoCj9F6qz/wBg28CB5FjeqO/+tDCS9rJuRCZ4TXNmSVFsYQFxq8Dqqe/0YEXSCeZClGWkQAgyKIsCDvvXKftoRwJQF+q8r1tge2V8jOrSBAAnhA4u316gAlZg0bbljOQYzEiEbdbeFjFOVpamfFd0J8VEct3HeJ08SWYv2ywJl9uUlKnymLle9i9EmOU7QWTrM8npO9M0TkhgwkouTzrD/P3xmdZROTkqHurS8RlkkUxNX57KmhMw0c3a4wgpfbIhhZtbJtrIE01T/8bvVwvO4LKRL+qL9bsTr7rfDTNHcRqeKSClcFwIDAQAB",
+   "manifest_version": 2,
+   "name": "Adblock for youtube™",
+   "permissions": [ "storage", "unlimitedStorage", "webRequest", "webRequestBlocking", "\u003Call_urls>" ],
+   "update_url": "https://clients2.google.com/service/update2/crx",
+   "version": "1.5.5",
+   "web_accessible_resources": [  ]
+}

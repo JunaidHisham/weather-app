@@ -1,0 +1,33 @@
+{
+   "description": "Arbol de la Vida: By Cecilia Ruiz",
+   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAhAVASj83s3x5XFCLET2L/HZ/9Tf1FafATzRpsCGULOUF1A9b6yYgLLdf38arrJlXUODjzg548P9nHVy8P8WIPBZf5K87CCCahqH3Xln2ABDiFDE8ktUmCQugyt5wh0/AbwIkqL4uQqT9+YREP51+TvfsCybmaBNxGLMKYAyTLq+DeowunO2dcBcE5e542sogxA8Szuw30wVvx5cYHmPKv9Hcm2sXx6u4uesmv472FY5aIludHkvxZY7+6f7nhemTab+HRmjXlpDb8JeOMj61ZBjHqELw79rCEePQA5MjeXmeY/cSUNJ6sHHHsxho9eNPGG4CN7JE2OGlH47cOFpoWwIDAQAB",
+   "manifest_version": 3,
+   "name": "Arbol de la Vida",
+   "theme": {
+      "colors": {
+         "bookmark_text": [ 255, 255, 255 ],
+         "frame": [ 0, 55, 38 ],
+         "ntp_background": [ 0, 55, 38 ],
+         "ntp_text": [ 255, 255, 255 ],
+         "tab_background_text": [ 255, 255, 255 ],
+         "tab_text": [ 255, 255, 255 ],
+         "toolbar": [ 0, 90, 62 ]
+      },
+      "images": {
+         "theme_ntp_background": "arbol_de_la_vida.png"
+      },
+      "properties": {
+         "ntp_background_alignment": "top",
+         "ntp_background_repeat": "no-repeat",
+         "ntp_logo_alternate": 1
+      },
+      "tints": {
+         "buttons": [ -1, 0.57, 0.9605 ],
+         "frame_inactive": [ -1, -1, -1 ],
+         "frame_incognito": [ -1, -1, -1 ],
+         "frame_incognito_inactive": [ -1, -1, -1 ]
+      }
+   },
+   "update_url": "https://clients2.google.com/service/update2/crx",
+   "version": "2"
+}

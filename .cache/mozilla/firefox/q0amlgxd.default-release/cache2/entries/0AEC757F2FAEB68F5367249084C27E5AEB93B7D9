@@ -1,0 +1,589 @@
+/*
+    GNOME Shell extensions repository
+    Copyright (C) 2011-2012  Jasper St. Pierre <jstpierre@mecheye.net>
+    Copyright (C) 2016-2019  Yuri Konotopov <ykonotopov@gnome.org>
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+ */
+
+define(['jquery', 'messages', 'dbus!_', 'extensionUtils',
+	'template!extensions/uninstall', 'template!extensions/info',
+	'template!extensions/info_contents', 'template!extensions/error_report_template',
+	'voca', 'paginator', 'switch'],
+	function ($, messages, dbusProxy, extensionUtils, uninstallTemplate,
+			infoTemplate, infoContentsTemplate, reportTemplate, voca) {
+		"use strict";
+
+		var ExtensionState = extensionUtils.ExtensionState;
+
+		$.fn.buildShellVersionsInfo = function () {
+			return this.each(function () {
+				var $table = $(this);
+				var $tbody = $table.find('tbody');
+				var $extension = $table.parents('.extension');
+
+				$tbody.children().remove();
+
+				var svm = $extension.data('svm');
+				for (var version in svm)
+				{
+					if (!svm.hasOwnProperty(version))
+					{
+						continue;
+					}
+
+					var $tr = $('<tr>').appendTo($tbody);
+					$('<td>').append($('<code>').text(version)).appendTo($tr);
+					$('<td>').text(svm[version].version).appendTo($tr);
+				}
+			});
+		};
+
+		$.fn.addDownloadOptions = function () {
+			return this.each(function () {
+				let $extension = $(this);
+				let $extension_download = $extension.find('.extension-download');
+				let $shell_version_select = $extension.find('select.shell-version');
+				let extension_versions = $extension.data('versions');
+				let uuid = $extension.data('uuid');
+
+				if(!extension_versions)
+				{
+					return;
+				}
+
+				let shell_versions = Object.keys(extension_versions);
+				shell_versions.sort(extensionUtils.shellVersionCompare).reverse();
+
+				for(let shell_version of shell_versions)
+				{
+					$shell_version_select.append(
+						$('<option />').val(shell_version).text(shell_version)
+					);
+				}
+
+				$extension.on('change', 'select.shell-version', function(event) {
+					let $extension_version_select = $extension_download.find('select.extension-version');
+					$extension_version_select.find('option:not(:first)').remove();
+
+					if($(this).prop('selectedIndex'))
+					{
+						let shell_version = $(this).val();
+						for (let extension_version_pk in extension_versions[shell_version])
+						{
+							$extension_version_select.append(
+								$('<option />').val(extension_version_pk).text(extension_versions[shell_version][extension_version_pk].version)
+							);
+						}
+					}
+					$extension_download.toggleClass('shell-selected', !!$(this).prop('selectedIndex'));
+				});
+
+				$extension.on('change', 'select.extension-version', function(event) {
+					if($(this).prop('selectedIndex'))
+					{
+						window.location = '/download-extension/'
+							+ encodeURIComponent(uuid) + '.shell-extension.zip?version_tag='
+							+ encodeURIComponent($(this).val());
+					}
+				});
+			});
+		};
+
+		// While technically we shouldn't have mismatched API versions,
+		// the plugin doesn't check whether the Shell matches, so if someone
+		// is running with an old Shell version but a newer plugin, error out.
+		if (dbusProxy.IsDummy)
+		{
+			// We don't have a proper DBus proxy, however API may be exported.
+			// If API is exported let's assume that browser extension is installed and will handle errors.
+			if(!window.SweetTooth || typeof(window.SweetTooth.initialize) !== 'function')
+			{
+				if (IS_CHROME || IS_FIREFOX || IS_OPERA) // browser_extension.js should be included globally
+				{
+					// Help user to install browser extension for supported browsers
+					messages.addInfo(voca.sprintf(
+						'%s.<br /><a href="#" title="%s" onclick="return browser_extension_install();">%s</a>. %s.',
+						gettext('To control GNOME Shell extensions using this site you must install GNOME Shell integration that consists of two parts: browser extension and native host messaging application'),
+						gettext('Install GNOME Shell integration browser extension'),
+						gettext('Click here to install browser extension'),
+						voca.sprintf(
+							gettext('See %swiki page%s for native host connector installation instructions'),
+							'<a href="https://wiki.gnome.org/Projects/GnomeShellIntegrationForChrome/Installation" onclick="window.open(this.href); return false;">',
+							'</a>'
+						)
+					));
+				}
+				else
+				{
+					messages.addError(
+						gettext('We cannot detect a running copy of GNOME on this system, so some parts of the interface may be disabled. See <a href="/about/#no-detection">our troubleshooting entry</a> for more information.')
+					);
+				}
+			}
+
+			$.fn.addExtensionSwitch = function () {
+				// Don't show our switches -- CSS styles define a clickable
+				// area even with no content.
+				return this.find('.switch').hide();
+			};
+
+			$.fn.addLocalExtensions = function () {
+				return this.append(gettext('GNOME Shell Extensions cannot list your installed extensions.'));
+			};
+
+			$.fn.fillInErrors = function () {
+				var $textarea = this.find('textarea[name=error]');
+				var $hidden = this.find('input:hidden[name=has_errors]');
+				$textarea.text(gettext('GNOME Shell Extensions cannot list your installed extensions.')).addClass('no-errors').attr('disabled', 'disabled');
+				$hidden.val('');
+				return this;
+			};
+
+			$.fn.grayOutIfOutOfDate = function () {
+				return this;
+			};
+
+			return;
+		}
+
+		// uuid => elem
+		var elems = {};
+
+		function extensionStateChanged(uuid, newState) {
+			if (elems[uuid] !== undefined)
+			{
+				elems[uuid].trigger('state-changed', newState);
+			}
+		}
+
+		function extensionTypeChanged(uuid, newType) {
+			if (elems[uuid] !== undefined)
+			{
+				if(elems[uuid].data('type') != newType)
+				{
+					elems[uuid].trigger('type-changed', newState);
+				}
+			}
+		}
+
+		dbusProxy.extensionStateChangedHandler = extensionStateChanged;
+
+		dbusProxy.shellRestartHandler = function () {
+			dbusProxy.ListExtensions().then(function (extensions) {
+				$.each(extensions, function () {
+					extensionStateChanged(this.uuid, this.state);
+					extensionTypeChanged(this.uuid, this.type);
+				});
+			});
+		};
+
+		function addExtensionSwitch(uuid, $elem, meta) {
+			var $switch = $elem.find('.switch');
+			var _state;
+			if (meta && meta.state)
+			{
+				_state = meta.state;
+			}
+			else
+			{
+				_state = ExtensionState.UNINSTALLED;
+			}
+
+			$elem.find('.configure-button').on('click', function () {
+				dbusProxy.LaunchExtensionPrefs(uuid);
+			});
+
+			$elem.find('.upgrade-button').on('click', function () {
+				let extensionState = $elem.data('state');
+
+				function installExtension() {
+					dbusProxy.InstallExtension(uuid).then(function (result) {
+						if (result === 'cancelled')
+						{
+							// WELP. We can't really do anything except leave the
+							// thing uninstalled.
+							$switch.switchify('activate', false);
+						}
+						// GNOME Shell bug https://bugzilla.gnome.org/show_bug.cgi?id=777544
+						else if (['s', 'successful'].indexOf(result) != -1)
+						{
+							// It should always became "per user" extension if installed from repository.
+							$elem.trigger('type-changed', extensionUtils.ExtensionType.PER_USER);
+
+							// Disable extensions if it was disabled prior to upgrade
+							if (extensionState == extensionUtils.ExtensionState.DISABLED)
+							{
+								dbusProxy.DisableExtension(uuid);
+							}
+						}
+					});
+				}
+
+				$elem.removeClass('upgradable');
+				if($elem.data('type') == extensionUtils.ExtensionType.PER_USER)
+				{
+					dbusProxy.UninstallExtension(uuid).then(function (result) {
+						// If we weren't able to uninstall the extension, don't
+						// do anything more.
+						if (!result)
+						{
+							return;
+						}
+
+						installExtension();
+					});
+				}
+				else
+				{
+					dbusProxy.DisableExtension(uuid).then(function (result) {
+						// Install extension if we were able to disable it first
+						if(result)
+						{
+							installExtension();
+						}
+					});
+				}
+			});
+
+			$elem.find('.uninstall-button').on('click', function () {
+				dbusProxy.UninstallExtension(uuid).then(function (result) {
+					if (result)
+					{
+						if(!$elem.hasClass('single-page'))
+						{
+							$elem.fadeOut({queue: false}).slideUp({queue: false});
+						}
+						else
+						{
+							$elem.removeClass('installed upgradable configurable');
+						}
+						messages.addInfo(uninstallTemplate.render(meta));
+					}
+				});
+			});
+
+			if ([ExtensionState.UNINSTALLED, ExtensionState.DOWNLOADING].indexOf(_state) == -1)
+			{
+				$elem.addClass('installed');
+			}
+
+			if(meta.type == extensionUtils.ExtensionType.SYSTEM)
+			{
+				$elem.addClass('system');
+			}
+
+			$elem.data({
+				'elem': $elem,
+				'state': _state,
+				'type': meta.type
+			});
+
+			$switch.data('elem', $elem);
+			$switch.switchify();
+
+			var svm = meta.shell_version_map || $elem.data('svm');
+			var latest = extensionUtils.grabProperExtensionVersion(
+				svm,
+				dbusProxy.ShellVersion,
+				!dbusProxy.VersionValidationEnabled
+			);
+
+			if (_state !== ExtensionState.UNINSTALLED && latest !== null &&
+				(!meta.version || latest.version > meta.version || _state === ExtensionState.OUT_OF_DATE))
+			{
+				$elem.addClass('upgradable');
+			}
+
+			function sendPopularity(action) {
+				$.ajax({
+					url: '/ajax/adjust-popularity/',
+					type: 'POST',
+					data: {
+						uuid: uuid,
+						action: action
+					}
+				});
+			}
+
+			// When the user flips the switch...
+			$switch.on('changed', function (e, newValue) {
+				var oldState = $elem.data('state');
+				if (newValue)
+				{
+					if (oldState == ExtensionState.UNINSTALLED)
+					{
+						// If the extension is uninstalled and we
+						// flick the switch on, install.
+						dbusProxy.InstallExtension(uuid).then(function (result) {
+							if (result === 'succeeded')
+							{
+								sendPopularity('enable');
+							}
+							else if (result === 'cancelled')
+							{
+								$switch.switchify('activate', false);
+							}
+						});
+					}
+					else if (oldState == ExtensionState.DISABLED ||
+						oldState == ExtensionState.INITIALIZED)
+					{
+						dbusProxy.EnableExtension(uuid);
+						sendPopularity('enable');
+					}
+				}
+				else
+				{
+					if (oldState == ExtensionState.ENABLED)
+					{
+						dbusProxy.DisableExtension(uuid);
+						sendPopularity('disable');
+					}
+				}
+			});
+
+			// When the extension changes state...
+			$elem.on('state-changed', function (e, newState) {
+				$elem.data('state', newState);
+
+				var hasPrefs = !!(meta.hasPrefs && newState !== ExtensionState.OUT_OF_DATE);
+				$elem.toggleClass('configurable', hasPrefs);
+
+				if (newState == ExtensionState.DISABLED ||
+					newState == ExtensionState.INITIALIZED ||
+					newState == ExtensionState.UNINSTALLED)
+				{
+					// Remove customization
+					$switch.switchify('customize');
+					$switch.switchify('activate', false);
+					$elem.removeClass('out-of-date');
+
+					if(newState == ExtensionState.UNINSTALLED && !latest)
+					{
+						$switch.switchify(
+							'customize',
+							"INCOMPATIBLE",
+							'incompatible',
+							"This extension is incompatible with your GNOME Shell version. For GNOME Shell 3.12 " +
+							" or newer you can set \"disable-extension-version-validation\" dconf setting to true" +
+							" to force installation of incompatible extensions."
+						);
+					}
+				}
+				else if (newState == ExtensionState.ENABLED)
+				{
+					// Remove customization
+					$switch.switchify('customize');
+					$switch.switchify('activate', true);
+					$elem.removeClass('out-of-date');
+				}
+				else if (newState == ExtensionState.ERROR)
+				{
+					$switch.switchify('customize', "ERROR", 'error');
+				}
+				else if (newState == ExtensionState.OUT_OF_DATE)
+				{
+					$elem.addClass('out-of-date');
+					$switch.switchify('customize', "OUTDATED", 'outdated');
+				}
+
+				$switch.switchify(dbusProxy.GetUserExtensionsDisabled() ? 'disable' : 'enable');
+			});
+
+			$elem.on('type-changed', function (e, newType) {
+				if(newType == extensionUtils.ExtensionType.SYSTEM)
+				{
+					$elem.addClass('system');
+				}
+				else
+				{
+					$elem.removeClass('system');
+				}
+
+				$elem.data('type', newType);
+			});
+
+			$elem.trigger('state-changed', _state);
+			elems[uuid] = $elem;
+		}
+
+		$.fn.addLocalExtensions = function () {
+			return this.each(function () {
+				var $container = $(this);
+				dbusProxy.ListExtensions().then(function (extensions) {
+					if (extensions && !$.isEmptyObject(extensions))
+					{
+						var extensionValues = [];
+						for (var uuid in extensions)
+						{
+							extensionValues.push(extensions[uuid]);
+						}
+
+						extensionValues.sort(function (a, b) {
+							if (a.name === undefined)
+							{
+								return 0;
+							}
+
+							if (b.name === undefined)
+							{
+								return 0;
+							}
+
+							return a.name.localeCompare(b.name);
+						});
+
+						extensionValues.forEach(function (extension) {
+							var uuid = extension.uuid;
+
+							// Give us a dummy element that we'll replace when
+							// rendering below, to keep renderExtension simple.
+							var $elem = $('<a>');
+
+							function renderExtension() {
+								if (extension.type == extensionUtils.ExtensionType.SYSTEM)
+								{
+									extension.system = true;
+								}
+
+								if (extension.description)
+								{
+									extension.first_line_of_description = extension.description.split('\n')[0];
+								}
+
+								$elem = $(infoTemplate.render(extension, {
+									[infoContentsTemplate.name()]: infoContentsTemplate.template()
+								})).replaceAll($elem);
+
+								addExtensionSwitch(uuid, $elem, extension);
+							}
+
+							$.ajax({
+								url: "/ajax/detail/",
+								dataType: "json",
+								data: {
+									uuid: extension.uuid,
+									version: extension.version
+								},
+								type: "GET",
+							}).done(function (result) {
+								$.extend(extension, result);
+								renderExtension();
+							}).fail(function (error) {
+								// Had an error looking up the data for the
+								// extension -- that's OK, just render it anyway.
+								renderExtension();
+							});
+
+							$container.append($elem);
+						});
+					}
+					else
+					{
+						$container.append("You don't have any extensions installed.");
+					}
+				})
+			});
+		};
+
+		$.fn.fillInErrors = function () {
+			return this.each(function () {
+				var $form = $(this);
+				var uuid = $form.data('uuid');
+				var $textarea = $form.find('textarea');
+				dbusProxy.GetExtensionInfo(uuid).then(function (meta) {
+					dbusProxy.GetErrors($form.data('uuid')).then(function (errors) {
+						var context = {
+							sv: dbusProxy.ShellVersion,
+							ev: (meta && meta.version) ? meta.version : null,
+							errors: errors
+						};
+
+						$textarea.text(reportTemplate.render(context));
+					});
+				});
+			});
+		};
+
+		$.fn.addExtensionSwitch = function () {
+			return this.each(function () {
+				var $extension = $(this);
+				var uuid = $extension.data('uuid');
+
+				$extension.on('out-of-date', function () {
+					var svm = $extension.data('svm');
+					var nhvOperation = extensionUtils.findNextHighestVersion(svm, dbusProxy.ShellVersion);
+					if (nhvOperation.operation === 'upgrade' &&
+						nhvOperation.stability === 'stable')
+					{
+						messages.addError("This extension is incompatible with your version of GNOME. Please upgrade to GNOME " + nhvOperation.version);
+					}
+					else if (nhvOperation.operation === 'upgrade' &&
+						nhvOperation.stability === 'unstable')
+					{
+						messages.addError("This extension is incompatible with your version of GNOME. This extension supports the GNOME unstable release, " + nhvOperation.version);
+					}
+					else if (nhvOperation.operation === 'downgrade')
+					{
+						messages.addError("This extension is incompatible with your version of GNOME.");
+					}
+				});
+
+				dbusProxy.GetExtensionInfo(uuid).then(function (meta) {
+					addExtensionSwitch(uuid, $extension, meta);
+				});
+			});
+		};
+
+		$.fn.grayOutIfOutOfDate = function () {
+			return this.each(function () {
+				var $elem = $(this);
+				var svm = $elem.data('svm');
+				if (!svm)
+				{
+					return;
+				}
+
+				var vpk = extensionUtils.grabProperExtensionVersion(
+					svm,
+					dbusProxy.ShellVersion,
+					!dbusProxy.VersionValidationEnabled
+				);
+				if (vpk === null)
+				{
+					$elem.addClass('out-of-date');
+				}
+			});
+		};
+	}
+);
+>ë¾ë      a€*a€+C–wža„ª   i    O^partitionKey=%28https%2Cgnome.org%29,:https://extensions.gnome.org/static/js/extensions.fe06408db96e.js necko:classified 1 strongly-framed 1 security-info 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 request-method GET response-head HTTP/1.1 200 OK
+Content-Type: application/javascript; charset=utf-8
+Content-Length: 16388
+ETag: "603d3865-4004"
+Accept-Ranges: bytes
+Server: nginx
+Date: Mon, 01 Nov 2021 16:39:07 GMT
+Last-Modified: Mon, 01 Mar 2021 18:54:29 GMT
+Expires: Thu, 04 Nov 2021 16:39:07 GMT
+Cache-Control: max-age=259200
+X-Content-Type-Options: nosniff
+X-Frame-Options: SAMEORIGIN
+X-UA-Compatible: IE=Edge
+ original-response-headers Server: nginx
+Date: Mon, 01 Nov 2021 16:38:38 GMT
+Content-Type: application/javascript; charset=utf-8
+Content-Length: 16388
+Last-Modified: Mon, 01 Mar 2021 18:54:29 GMT
+ETag: "603d3865-4004"
+Expires: Thu, 04 Nov 2021 16:38:38 GMT
+Cache-Control: max-age=259200
+X-Content-Type-Options: nosniff
+X-Frame-Options: SAMEORIGIN
+X-UA-Compatible: IE=Edge
+Accept-Ranges: bytes
+ ctid 2 uncompressed-len 0 net-response-time-onstart 545 net-response-time-onstop 796   @

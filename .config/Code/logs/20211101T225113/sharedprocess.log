@@ -1,0 +1,29 @@
+[2021-11-01 22:51:24.438] [sharedprocess] [info] [logs cleanup]: Starting to clean up old logs.
+[2021-11-01 22:51:44.438] [sharedprocess] [info] [code cache cleanup]: Starting to clean up old code cache folders.
+[2021-11-01 22:51:44.438] [sharedprocess] [info] [storage cleanup]: Starting to clean up storage folders.
+[2021-11-01 22:51:54.436] [sharedprocess] [info] [language pack cache cleanup]: Starting to clean up unused language packs.
+[2021-11-01 22:52:50.051] [sharedprocess] [info] Installing extension: ritwickdey.liveserver
+[2021-11-01 22:52:55.134] [sharedprocess] [info] Downloaded extension: ritwickdey.liveserver /home/junaidhisham/.config/Code/CachedExtensionVSIXs/ritwickdey.liveserver-5.6.1
+[2021-11-01 22:52:55.966] [sharedprocess] [info] Extracted extension to /home/junaidhisham/.vscode/extensions/.fcc5fd37-22d4-473f-a056-039bf876990e: ritwickdey.liveserver
+[2021-11-01 22:52:55.971] [sharedprocess] [info] Renamed to /home/junaidhisham/.vscode/extensions/ritwickdey.liveserver-5.6.1
+[2021-11-01 22:52:55.972] [sharedprocess] [info] Extracting completed. ritwickdey.liveserver
+[2021-11-01 22:52:55.974] [sharedprocess] [info] Extension installed successfully: ritwickdey.liveserver
+[2021-11-01 22:53:06.830] [sharedprocess] [info] Installing extension: akhail.save-typing
+[2021-11-01 22:53:08.667] [sharedprocess] [info] Downloaded extension: akhail.save-typing /home/junaidhisham/.config/Code/CachedExtensionVSIXs/akhail.save-typing-0.1.0
+[2021-11-01 22:53:08.675] [sharedprocess] [info] Extracted extension to /home/junaidhisham/.vscode/extensions/.f4d48631-dcac-4cac-8bd3-8d662594d475: akhail.save-typing
+[2021-11-01 22:53:08.678] [sharedprocess] [info] Renamed to /home/junaidhisham/.vscode/extensions/akhail.save-typing-0.1.0
+[2021-11-01 22:53:08.678] [sharedprocess] [info] Extracting completed. akhail.save-typing
+[2021-11-01 22:53:08.679] [sharedprocess] [info] Extension installed successfully: akhail.save-typing
+[2021-11-01 22:53:15.314] [sharedprocess] [info] Installing extension: ms-python.python
+[2021-11-01 22:53:20.910] [sharedprocess] [info] Installing extension: ms-toolsai.jupyter
+[2021-11-01 22:53:20.910] [sharedprocess] [info] Installing extension: ms-toolsai.jupyter-keymap
+[2021-11-01 22:53:20.910] [sharedprocess] [info] Installing extension: ms-toolsai.jupyter-renderers
+[2021-11-01 22:53:20.910] [sharedprocess] [info] Installing extension: ms-python.vscode-pylance
+[2021-11-01 22:53:23.989] [sharedprocess] [info] Downloaded extension: ms-toolsai.jupyter-keymap /home/junaidhisham/.config/Code/CachedExtensionVSIXs/ms-toolsai.jupyter-keymap-1.0.0
+[2021-11-01 22:53:23.993] [sharedprocess] [info] Extracted extension to /home/junaidhisham/.vscode/extensions/.9f99ac73-9ee9-4c01-b5fb-91cf5659df7d: ms-toolsai.jupyter-keymap
+[2021-11-01 22:53:23.996] [sharedprocess] [info] Renamed to /home/junaidhisham/.vscode/extensions/ms-toolsai.jupyter-keymap-1.0.0
+[2021-11-01 22:53:23.996] [sharedprocess] [info] Extracting completed. ms-toolsai.jupyter-keymap
+[2021-11-01 22:53:32.626] [sharedprocess] [info] Downloaded extension: ms-toolsai.jupyter-renderers /home/junaidhisham/.config/Code/CachedExtensionVSIXs/ms-toolsai.jupyter-renderers-1.0.3
+[2021-11-01 22:53:32.729] [sharedprocess] [info] Extracted extension to /home/junaidhisham/.vscode/extensions/.c47f5a5d-7d68-4c5a-9f29-052e249cb08a: ms-toolsai.jupyter-renderers
+[2021-11-01 22:53:32.732] [sharedprocess] [info] Renamed to /home/junaidhisham/.vscode/extensions/ms-toolsai.jupyter-renderers-1.0.3
+[2021-11-01 22:53:32.732] [sharedprocess] [info] Extracting completed. ms-toolsai.jupyter-renderers

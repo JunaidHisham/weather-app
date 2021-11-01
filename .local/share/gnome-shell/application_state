@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<application-state>
+  <context id="">
+    <application id="org.gnome.tweaks.desktop" score="0" last-seen="1635784585"/>
+    <application id="google-chrome.desktop" score="157" last-seen="1635787554"/>
+    <application id="gnome-control-center.desktop" score="4" last-seen="1635787451"/>
+    <application id="org.gnome.eog.desktop" score="0" last-seen="1635786628"/>
+    <application id="org.gnome.Nautilus.desktop" score="0" last-seen="1635786635"/>
+    <application id="gnome-initial-setup.desktop" score="306781968" last-seen="1635784508"/>
+    <application id="com.github.donadigo.eddy.desktop" score="13" last-seen="1635787106"/>
+    <application id="firefox.desktop" score="35" last-seen="1635785660"/>
+    <application id="org.gnome.Terminal.desktop" score="118" last-seen="1635787554"/>
+    <application id="code.desktop" score="13" last-seen="1635787422"/>
+  </context>
+</application-state>
